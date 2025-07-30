@@ -1,5 +1,6 @@
 import { format, formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { v4 as uuidv4 } from "uuid";
 
 import { useState } from "react";
 import { Avatar } from "./Avatar";
@@ -7,7 +8,9 @@ import { Comment } from "./comment";
 import styles from "./Post.module.css";
 
 export function Post({ author, content, publishedAt }) {
-  const [comments, setComments] = useState(["Post muito bacana!"]);
+  const [comments, setComments] = useState([
+    { id: uuidv4(), text: "Post muito bacana!" },
+  ]);
   const [newCommentText, setNewCommentText] = useState("");
 
   const publishedDateFormatted = format(
@@ -21,16 +24,33 @@ export function Post({ author, content, publishedAt }) {
     addSuffix: true,
   });
 
-  function handleNewCommentChange() {
-    setNewCommentText(event.target.value);
-  }
-
   function handleCreateNewComment() {
     event.preventDefault();
 
-    setComments([...comments, newCommentText]);
+    const newComment = { id: uuidv4(), text: newCommentText };
+
+    setComments([...comments, newComment]);
     setNewCommentText("");
   }
+
+  function handleNewCommentChange() {
+    event.target.setCustomValidity("");
+    setNewCommentText(event.target.value);
+  }
+
+  function handleNewCommentInvalid() {
+    event.target.setCustomValidity("Esse campo é obrigatório!");
+  }
+
+  function deleteComment(commentId) {
+    const commentsFiltered = comments.filter((comment) => {
+      return comment.id !== commentId;
+    });
+
+    setComments(commentsFiltered);
+  }
+
+  const isNewCommentEmpty = newCommentText.length === 0;
 
   return (
     <article className={styles.post}>
@@ -71,15 +91,25 @@ export function Post({ author, content, publishedAt }) {
           value={newCommentText}
           onChange={handleNewCommentChange}
           placeholder="Deixe um comentário"
+          onInvalid={handleNewCommentInvalid}
+          required
         />
         <footer>
-          <button type="submit">Publicar</button>
+          <button type="submit" disabled={isNewCommentEmpty}>
+            Publicar
+          </button>
         </footer>
       </form>
 
       <div className={styles.commentList}>
         {comments.map((item) => {
-          return <Comment key={item} content={item} />;
+          return (
+            <Comment
+              key={item.id}
+              content={item}
+              onDeleteComment={deleteComment}
+            />
+          );
         })}
       </div>
     </article>
